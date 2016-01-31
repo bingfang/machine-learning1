@@ -1,0 +1,69 @@
+---
+title: "Practical Machine Learning: An Analysis of the Weight Lifting Exercises Dataset"
+author: "Bingfang Xu"
+date: "Friday, January 29, 2016"
+output: html_document
+---
+##Introduction
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal is to predict the manner in which people did the exercise. "classe" variable will be outcome, any of other vatiables are predictors. Model building, cross evaluation and prediction were performed.Data are collected from accelerometers on the belt, forearm, arm, and dumbell of 6 participants.
+
+###load necessary packages. If the packages is not pre-installed, use install.packages() function to install.
+```{r}
+library(caret)
+library(randomForest)
+library(rpart)
+```
+
+### Put the data in the work directory. Load the data.Define missing data. Look at the variables in the data
+
+```{r}
+trainingset <- read.csv("./pml-training.csv", na.strings=c("NA","#DIV/0!", ""))
+testingset <- read.csv('./pml-testing.csv', na.strings=c("NA","#DIV/0!", ""))
+str(trainingset)
+set.seed(1111)
+trainingset<-trainingset[,colSums(is.na(trainingset)) == 0]
+testingset <-testingset[,colSums(is.na(testingset)) == 0]
+trainingset   <-trainingset[,-c(1:7)]
+testingset <-testingset[,-c(1:7)]
+```
+
+
+### Subset trainingset into newtraining and validation sets.
+
+```{r}
+inTrain <- createDataPartition(y=trainingset$classe,p = 3/4,list=FALSE)
+newtrainingset <- trainingset[inTrain, ]
+validationset <- trainingset[-inTrain, ]
+```
+
+### Build a model using newtrainingset data and decision tree, and use the model to predict validationset data. Preform cross-validation.
+```{r}
+#Building a model using decsion tree:
+model1 <- rpart(classe ~ ., data=newtrainingset, method="class")
+
+# Predicting:
+prediction1 <- predict(model1, validationset, type = "class")
+
+#cross validation
+confusionMatrix(prediction1, validationset$classe)
+```
+
+## Build a model using newtrainingset data and random forest, and use the model to predict validationset data. Preform cross-validation.
+```{r}
+model2 <- randomForest(classe ~. , data=newtrainingset, method="class")
+
+# Predicting:
+prediction2 <- predict(model2, validationset, type = "class")
+
+# Test results on subTesting data set:
+confusionMatrix(prediction2, validationset$classe)
+
+```
+#Conclusion: 
+model made from random forest gave us 99.6% accuracy while model made from decision tree gave us 74.0% accuracy. So we chose model2 to predict testing data set. Since testing data set only have 20 samples, with 99.6% accuracy we would accurately predict the data.
+
+### Use the random forest model to predict testing data. 
+```{r}
+prediction3<- predict(model2, testingset, type="class")
+prediction3
+```
